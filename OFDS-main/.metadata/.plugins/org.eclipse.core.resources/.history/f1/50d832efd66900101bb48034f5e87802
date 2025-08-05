@@ -1,0 +1,5 @@
+package com.delivery.delivery_service.dto;
+
+public class AgentCreateDTO {
+
+}

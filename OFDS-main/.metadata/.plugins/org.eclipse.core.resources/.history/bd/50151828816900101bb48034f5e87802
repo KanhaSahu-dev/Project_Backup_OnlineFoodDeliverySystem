@@ -1,0 +1,5 @@
+package com.fooddelivery.orderservicef.config;
+
+public class CorsConfig {
+
+}

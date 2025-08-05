@@ -1,0 +1,5 @@
+package com.fooddelivery.orderservicef.dto;
+
+public class AgentCreateDTO {
+
+}

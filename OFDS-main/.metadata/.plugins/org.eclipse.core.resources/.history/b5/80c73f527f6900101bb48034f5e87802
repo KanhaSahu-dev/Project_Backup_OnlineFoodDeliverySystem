@@ -1,0 +1,5 @@
+package com.ofds.authservice.config;
+
+public class CorsConfig {
+
+}
