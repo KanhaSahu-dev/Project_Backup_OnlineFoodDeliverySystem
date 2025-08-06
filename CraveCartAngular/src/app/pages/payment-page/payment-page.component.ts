@@ -900,21 +900,29 @@ export class PaymentPageComponent implements OnInit {
           }
         };
 
+        // Store order summary BEFORE placing order (cart will be cleared by order service)
+        const orderSummary = {
+          items: this.cartService.getCartItems(),
+          subtotal: this.cartService.getCartTotal(),
+          deliveryFee: 30,
+          serviceFee: 10,
+          total: this.getTotal(),
+          timestamp: new Date().toISOString()
+        };
+        
+        // Debug: Log what we're storing
+        console.log('🛒 Debug COD payment data being stored (BEFORE order service):');
+        console.log('  Cart items:', this.cartService.getCartItems());
+        console.log('  Cart total:', this.cartService.getCartTotal());
+        console.log('  Order summary to store:', orderSummary);
+
         this.orderService.placeFullOrder(orderRequest).subscribe({
           next: () => {
             this.loading = false;
             this.paymentForm.reset();
             this.selectedPaymentMethod = null; // Reset to no selection
             
-            // Store order summary in localStorage before navigation
-            const orderSummary = {
-              items: this.cartService.getCartItems(),
-              subtotal: this.cartService.getCartTotal(),
-              deliveryFee: 30,
-              serviceFee: 10,
-              total: this.getTotal(),
-              timestamp: new Date().toISOString()
-            };
+            // Store the order summary we captured before the cart was cleared
             localStorage.setItem('lastOrderSummary', JSON.stringify(orderSummary));
             console.log('💾 COD - Stored order summary for success page:', orderSummary);
             
@@ -983,23 +991,31 @@ export class PaymentPageComponent implements OnInit {
 
         console.log('💳 Sending card payment orderRequest:', orderRequest);
 
+        // Store order summary BEFORE placing order (cart will be cleared by order service)
+        const cardOrderSummary = {
+          items: this.cartService.getCartItems(),
+          subtotal: this.cartService.getCartTotal(),
+          deliveryFee: 30,
+          serviceFee: 10,
+          total: this.getTotal(),
+          timestamp: new Date().toISOString()
+        };
+        
+        // Debug: Log what we're storing
+        console.log('💳 Debug card payment data being stored (BEFORE order service):');
+        console.log('  Cart items:', this.cartService.getCartItems());
+        console.log('  Cart total:', this.cartService.getCartTotal());
+        console.log('  Order summary to store:', cardOrderSummary);
+
         this.orderService.placeFullOrder(orderRequest).subscribe({
           next: () => {
             this.loading = false;
             this.paymentForm.reset();
             this.selectedPaymentMethod = null; // Reset to no selection
             
-            // Store order summary in localStorage before navigation
-            const orderSummary = {
-              items: this.cartService.getCartItems(),
-              subtotal: this.cartService.getCartTotal(),
-              deliveryFee: 30,
-              serviceFee: 10,
-              total: this.getTotal(),
-              timestamp: new Date().toISOString()
-            };
-            localStorage.setItem('lastOrderSummary', JSON.stringify(orderSummary));
-            console.log('💾 Card - Stored order summary for success page:', orderSummary);
+            // Store the order summary we captured before the cart was cleared
+            localStorage.setItem('lastOrderSummary', JSON.stringify(cardOrderSummary));
+            console.log('💾 Card - Stored order summary for success page:', cardOrderSummary);
             
             // Show cosmic success notification
             // Removed annoying notification

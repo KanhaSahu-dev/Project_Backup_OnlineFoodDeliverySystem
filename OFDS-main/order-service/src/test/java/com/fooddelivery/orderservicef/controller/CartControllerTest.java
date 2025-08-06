@@ -50,7 +50,7 @@ class CartControllerTest {
     void testGetCart() throws Exception {
         CartDTO cartDTO = new CartDTO(1L, userId, 1L, List.of());
 
-        Mockito.when(cartServiceImpl.getOrCreateCart(userId)).thenReturn(cartDTO);
+        Mockito.when(cartServiceImpl.getCartByUserId(userId)).thenReturn(cartDTO);
 
         mockMvc.perform(get("/api/cart")
                 .header(USER_ID_HEADER, userId.toString())
@@ -61,7 +61,7 @@ class CartControllerTest {
 
     @Test
     void testAddItemToCart() throws Exception {
-        CartItemDTO itemDTO = new CartItemDTO(1L, 1L, "Pizza", 2, BigDecimal.TEN);
+        CartItemDTO itemDTO = new CartItemDTO(1L, 1L, "Pizza", 2, 10.0);
         CartDTO cartDTO = new CartDTO(1L, userId, 1L, List.of(itemDTO));
 
         Mockito.when(cartServiceImpl.addItemToCart(Mockito.eq(userId), Mockito.any())).thenReturn(cartDTO);
@@ -78,7 +78,7 @@ class CartControllerTest {
     @Test
     void testUpdateCartItem() throws Exception {
         Long itemId = 1L;
-        CartItemDTO itemDTO = new CartItemDTO(itemId, 1L, "Burger", 3, BigDecimal.valueOf(15));
+        CartItemDTO itemDTO = new CartItemDTO(itemId, 1L, "Burger", 3, 15.0);
         CartDTO cartDTO = new CartDTO(1L, userId, 1L, List.of(itemDTO));
 
         Mockito.when(cartServiceImpl.updateCartItem(Mockito.eq(userId), Mockito.eq(itemId), Mockito.any())).thenReturn(cartDTO);
@@ -98,7 +98,7 @@ class CartControllerTest {
         CartDTO cartDTO = new CartDTO(1L, userId, 1L, List.of());
 
         Mockito.doNothing().when(cartServiceImpl).removeItemFromCart(userId, itemId);
-        Mockito.when(cartServiceImpl.getOrCreateCart(userId)).thenReturn(cartDTO);
+        Mockito.when(cartServiceImpl.getCartByUserId(userId)).thenReturn(cartDTO);
 
         mockMvc.perform(delete("/api/cart/items/" + itemId)
                 .header(USER_ID_HEADER, userId.toString())
@@ -129,7 +129,7 @@ class CartControllerTest {
 
     @Test
     void testUpdateCartItem_MalformedId() throws Exception {
-        CartItemDTO itemDTO = new CartItemDTO(1L, 1L, "Burger", 2, BigDecimal.TEN);
+        CartItemDTO itemDTO = new CartItemDTO(1L, 1L, "Burger", 2, 10.0);
 
         mockMvc.perform(put("/api/cart/items/not-a-number")
                 .header(USER_ID_HEADER, userId.toString())

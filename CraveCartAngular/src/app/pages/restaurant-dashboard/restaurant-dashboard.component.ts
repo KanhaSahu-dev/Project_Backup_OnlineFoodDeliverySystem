@@ -3036,8 +3036,18 @@ export class RestaurantDashboardComponent implements OnInit {
         },
         error: (error) => {
           console.error('Error fetching menu:', error);
-          this.error = error.message;
-          this.loading = false;
+          
+          // Handle 404 as empty menu (normal for new restaurants)
+          if (error.status === 404) {
+            console.log('ℹ️ No menu items found for new restaurant - this is normal');
+            this.menuItems = []; // Set empty array for new restaurants
+            this.error = null; // Don't show error for empty menu
+            this.loading = false;
+          } else {
+            // Only show error for actual problems (500, 403, etc.)
+            this.error = error.message;
+            this.loading = false;
+          }
         }
       });
 
@@ -3880,6 +3890,15 @@ export class RestaurantDashboardComponent implements OnInit {
         },
         error: (error: any) => {
           console.error('❌ Error refreshing menu items:', error);
+          
+          // Handle 404 as empty menu (normal for new restaurants)
+          if (error.status === 404) {
+            console.log('ℹ️ No menu items found during refresh - setting empty menu');
+            this.menuItems = []; // Set empty array for new restaurants
+            this.error = null; // Don't show error for empty menu
+            this.cdr.detectChanges();
+          }
+          // For other errors, don't update the error state to avoid disrupting the UI
         }
       });
     }

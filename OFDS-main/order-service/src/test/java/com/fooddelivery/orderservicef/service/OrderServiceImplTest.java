@@ -9,9 +9,10 @@ import java.util.*;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.fooddelivery.orderservicef.dto.*;
 import com.fooddelivery.orderservicef.exception.InvalidOperationException;
@@ -19,6 +20,7 @@ import com.fooddelivery.orderservicef.exception.ResourceNotFoundException;
 import com.fooddelivery.orderservicef.model.*;
 import com.fooddelivery.orderservicef.repository.*;
 
+@ExtendWith(MockitoExtension.class)
 class OrderServiceImplTest {
 
     @Mock private OrderRepository orderRepository;
@@ -40,8 +42,6 @@ class OrderServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-        
         userId = 1L;
         restaurantId = 2L;
         orderId = 3L;
@@ -52,8 +52,8 @@ class OrderServiceImplTest {
         cartDTO.setUserId(userId);
         cartDTO.setRestaurantId(restaurantId);
         cartDTO.setItems(Arrays.asList(
-            new CartItemDTO(1L, 101L, "Pizza", 2, BigDecimal.valueOf(150)),
-            new CartItemDTO(2L, 102L, "Burger", 1, BigDecimal.valueOf(100))
+            new CartItemDTO(1L, 101L, "Pizza", 2, 150.0),
+            new CartItemDTO(2L, 102L, "Burger", 1, 100.0)
         ));
         
         // Setup OrderRequestDTO
@@ -68,7 +68,7 @@ class OrderServiceImplTest {
         orderItem.setMenuItemId(101L);
         orderItem.setItemName("Pizza");
         orderItem.setQuantity(2);
-        orderItem.setPrice(BigDecimal.valueOf(150));
+        orderItem.setPrice(150.0);
         
         // Setup Order
         order = Order.builder()
@@ -78,7 +78,7 @@ class OrderServiceImplTest {
             .deliveryAddress("123 Street")
             .orderTime(LocalDateTime.now())
             .status(OrderStatus.PENDING)
-            .totalAmount(BigDecimal.valueOf(400))
+            .totalAmount(400.0)
             .idempotencyKey("test-key")
             .items(Arrays.asList(orderItem))
             .build();
@@ -91,7 +91,7 @@ class OrderServiceImplTest {
         // Given
         when(orderRepository.existsByIdempotencyKey(any())).thenReturn(false);
         cartDTO.setItems(new ArrayList<>());
-        when(cartServiceImpl.getOrCreateCart(userId)).thenReturn(cartDTO);
+        when(cartServiceImpl.getCartByUserId(userId)).thenReturn(cartDTO);
 
         // When & Then
         assertThrows(InvalidOperationException.class, () ->
@@ -118,7 +118,7 @@ class OrderServiceImplTest {
     void testPlaceOrder_SuccessfulOrder() {
         // Given
         when(orderRepository.existsByIdempotencyKey("key")).thenReturn(false);
-        when(cartServiceImpl.getOrCreateCart(userId)).thenReturn(cartDTO);
+        when(cartServiceImpl.getCartByUserId(userId)).thenReturn(cartDTO);
         when(orderRepository.save(any(Order.class))).thenReturn(order);
         when(orderItemRepository.saveAll(any())).thenReturn(Arrays.asList(orderItem));
         
@@ -144,7 +144,7 @@ class OrderServiceImplTest {
     void testPlaceOrder_PaymentFailure_ThrowsException() {
         // Given
         when(orderRepository.existsByIdempotencyKey("key")).thenReturn(false);
-        when(cartServiceImpl.getOrCreateCart(userId)).thenReturn(cartDTO);
+        when(cartServiceImpl.getCartByUserId(userId)).thenReturn(cartDTO);
         when(orderRepository.save(any(Order.class))).thenReturn(order);
         when(orderItemRepository.saveAll(any())).thenReturn(Arrays.asList(orderItem));
         when(paymentServiceClient.processPayment(any())).thenThrow(new RuntimeException("Payment failed"));
@@ -259,11 +259,11 @@ class OrderServiceImplTest {
     @Test
     void testGetRestaurantOrders_ReturnsList() {
         // Given
-        when(orderRepository.findByRestaurantIdAndStatus(restaurantId, OrderStatus.PENDING))
+        when(orderRepository.findByRestaurantId(restaurantId))
             .thenReturn(Arrays.asList(order));
 
         // When
-        List<OrderDTO> orders = orderService.getRestaurantOrders(restaurantId, OrderStatus.PENDING);
+        List<OrderDTO> orders = orderService.getRestaurantOrders(restaurantId);
 
         // Then
         assertNotNull(orders);
@@ -335,7 +335,7 @@ class OrderServiceImplTest {
         assertEquals(userId, result.getUserId());
         assertEquals(restaurantId, result.getRestaurantId());
         assertEquals(OrderStatus.PENDING, result.getStatus());
-        assertEquals(BigDecimal.valueOf(400), result.getTotalAmount());
+        assertEquals(400.0, result.getTotalAmount());
         assertEquals("123 Street", result.getDeliveryAddress());
         assertEquals(123L, result.getPaymentId());
         assertEquals(456L, result.getDeliveryAgentId());

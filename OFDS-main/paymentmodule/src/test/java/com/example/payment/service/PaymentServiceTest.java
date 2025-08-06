@@ -16,21 +16,30 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.*;
+import org.mockito.Mock;
+import org.mockito.InjectMocks;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class PaymentServiceTest {
 
-    private PaymentService paymentService;
+    @Mock
     private PaymentRepository paymentRepository;
+    
+    @Mock
     private ModelMapper modelMapper;
+    
+    @InjectMocks
+    private PaymentServiceImpl paymentService;
 
     private PaymentRequestDTO paymentRequestDTO;
     private Payment payment;
 
     @BeforeEach
     void setUp() {
-        paymentRepository = mock(PaymentRepository.class);
-        modelMapper = mock(ModelMapper.class);
-        paymentService = new PaymentServiceImpl(paymentRepository, modelMapper);
+        // Remove manual mock creation since @Mock annotations handle this
 
         paymentRequestDTO = new PaymentRequestDTO();
         paymentRequestDTO.setOrderId(1L);

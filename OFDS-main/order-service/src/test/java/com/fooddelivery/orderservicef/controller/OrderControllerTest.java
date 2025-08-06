@@ -53,7 +53,7 @@ class OrderControllerTest {
         dto.setUserId(userId);
         dto.setRestaurantId(restaurantId);
         dto.setStatus(OrderStatus.PENDING);
-        dto.setTotalAmount(BigDecimal.TEN);
+        dto.setTotalAmount(10.0);
         dto.setOrderTime(LocalDateTime.now());
         dto.setDeliveryAddress("123 Main St");
         return dto;

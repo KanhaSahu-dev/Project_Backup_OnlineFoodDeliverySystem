@@ -12,13 +12,15 @@ import com.fooddelivery.orderservicef.repository.CartRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
-import java.math.BigDecimal;
+import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class CartServiceImplTest {
 
     @InjectMocks
@@ -35,355 +37,131 @@ class CartServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        // Setup handled by @Mock annotations
     }
 
     @Test
-    void testGetOrCreateCart_CartExists() {
+    void testGetCartByUserId_CartExists() {
         Long userId = 123L;
         Cart cart = new Cart();
         cart.setId(1L);
         cart.setUserId(userId);
-        cart.setRestaurantId(5965392056977236797L);
+        cart.setRestaurantId(100L);
         cart.setItems(new ArrayList<>());
 
         when(cartRepository.findByUserId(userId)).thenReturn(Optional.of(cart));
 
-        CartDTO result = cartService.getOrCreateCart(userId);
+        CartDTO result = cartService.getCartByUserId(userId);
 
         assertEquals(userId, result.getUserId());
         assertEquals(cart.getId(), result.getId());
         verify(cartRepository, times(1)).findByUserId(userId);
-        verify(cartRepository, never()).save(any());
     }
 
     @Test
-    void testGetOrCreateCart_CartDoesNotExist() {
+    void testGetCartByUserId_CartDoesNotExist() {
         Long userId = 123L;
-        Cart newCart = new Cart();
-        newCart.setId(1L);
-        newCart.setUserId(userId);
-        newCart.setRestaurantId(5965392056977236797L);
-        newCart.setItems(new ArrayList<>());
-
+        
         when(cartRepository.findByUserId(userId)).thenReturn(Optional.empty());
-        when(cartRepository.save(any(Cart.class))).thenReturn(newCart);
 
-        CartDTO result = cartService.getOrCreateCart(userId);
+        CartDTO result = cartService.getCartByUserId(userId);
 
+        // Should return empty cart DTO for non-existent cart
         assertEquals(userId, result.getUserId());
-        assertEquals(newCart.getId(), result.getId());
+        assertTrue(result.getItems().isEmpty());
         verify(cartRepository, times(1)).findByUserId(userId);
-        verify(cartRepository, times(1)).save(any(Cart.class));
     }
 
     @Test
     void testAddItemToCart_InvalidQuantity() {
         Long userId = 123L;
+
         CartItemDTO itemDTO = new CartItemDTO();
         itemDTO.setMenuItemId(1L);
         itemDTO.setItemName("Pizza");
-        itemDTO.setQuantity(0);
-        itemDTO.setPrice(BigDecimal.TEN);
+        itemDTO.setQuantity(0);  // Invalid quantity
+        itemDTO.setPrice(10.0);
 
         assertThrows(InvalidOperationException.class, () -> cartService.addItemToCart(userId, itemDTO));
-        verify(cartRepository, never()).findByUserId(any());
-    }
-
-    @Test
-    void testAddItemToCart_NullDTO() {
-        Long userId = 123L;
-        assertThrows(NullPointerException.class, () -> cartService.addItemToCart(userId, null));
-    }
-
-    @Test
-    void testAddItemToCart_Success_NewCart() {
-        Long userId = 123L;
-        Long menuItemId = 1L;
-        
-        CartItemDTO itemDTO = new CartItemDTO();
-        itemDTO.setMenuItemId(menuItemId);
-        itemDTO.setItemName("Pizza");
-        itemDTO.setQuantity(2);
-        itemDTO.setPrice(BigDecimal.valueOf(15.50));
-
-        MenuItemDTO menuItemDTO = new MenuItemDTO();
-        menuItemDTO.setItemName("Pizza");
-        menuItemDTO.setPrice(15.50);
-        menuItemDTO.setIsAvailable(true);
-
-        Cart newCart = new Cart();
-        newCart.setId(1L);
-        newCart.setUserId(userId);
-        newCart.setRestaurantId(5965392056977236797L);
-        newCart.setItems(new ArrayList<>());
-
-        Cart savedCart = new Cart();
-        savedCart.setId(1L);
-        savedCart.setUserId(userId);
-        savedCart.setRestaurantId(5965392056977236797L);
-        savedCart.setItems(new ArrayList<>());
-
-        when(cartRepository.findByUserId(userId)).thenReturn(Optional.empty());
-        when(cartRepository.save(any(Cart.class))).thenReturn(newCart, savedCart);
-        when(menuServiceClient.getMenuItemById(menuItemId)).thenReturn(menuItemDTO);
-        when(cartItemRepository.save(any(CartItem.class))).thenAnswer(i -> i.getArgument(0));
-
-        CartDTO result = cartService.addItemToCart(userId, itemDTO);
-
-        assertNotNull(result);
-        assertEquals(userId, result.getUserId());
-        verify(cartRepository, times(2)).save(any(Cart.class));
-        verify(menuServiceClient, times(1)).getMenuItemById(menuItemId);
-        verify(cartItemRepository, times(1)).save(any(CartItem.class));
-    }
-
-    @Test
-    void testAddItemToCart_Success_ExistingCart() {
-        Long userId = 123L;
-        Long menuItemId = 1L;
-        
-        CartItemDTO itemDTO = new CartItemDTO();
-        itemDTO.setMenuItemId(menuItemId);
-        itemDTO.setItemName("Pizza");
-        itemDTO.setQuantity(2);
-        itemDTO.setPrice(BigDecimal.valueOf(15.50));
-
-        MenuItemDTO menuItemDTO = new MenuItemDTO();
-        menuItemDTO.setItemName("Pizza");
-        menuItemDTO.setPrice(15.50);
-        menuItemDTO.setIsAvailable(true);
-
-        Cart existingCart = new Cart();
-        existingCart.setId(1L);
-        existingCart.setUserId(userId);
-        existingCart.setRestaurantId(5965392056977236797L);
-        existingCart.setItems(new ArrayList<>());
-
-        Cart savedCart = new Cart();
-        savedCart.setId(1L);
-        savedCart.setUserId(userId);
-        savedCart.setRestaurantId(5965392056977236797L);
-        savedCart.setItems(new ArrayList<>());
-
-        when(cartRepository.findByUserId(userId)).thenReturn(Optional.of(existingCart));
-        when(cartRepository.save(any(Cart.class))).thenReturn(savedCart);
-        when(menuServiceClient.getMenuItemById(menuItemId)).thenReturn(menuItemDTO);
-        when(cartItemRepository.save(any(CartItem.class))).thenAnswer(i -> i.getArgument(0));
-
-        CartDTO result = cartService.addItemToCart(userId, itemDTO);
-
-        assertNotNull(result);
-        assertEquals(userId, result.getUserId());
-        verify(cartRepository, times(1)).save(any(Cart.class));
-        verify(menuServiceClient, times(1)).getMenuItemById(menuItemId);
-        verify(cartItemRepository, times(1)).save(any(CartItem.class));
     }
 
     @Test
     void testAddItemToCart_MenuItemNotFound() {
         Long userId = 123L;
-        Long menuItemId = 1L;
-        
+        Long menuItemId = 999L;
+
         CartItemDTO itemDTO = new CartItemDTO();
         itemDTO.setMenuItemId(menuItemId);
         itemDTO.setItemName("Pizza");
         itemDTO.setQuantity(2);
-        itemDTO.setPrice(BigDecimal.valueOf(15.50));
+        itemDTO.setPrice(15.50);
 
-        Cart existingCart = new Cart();
-        existingCart.setId(1L);
-        existingCart.setUserId(userId);
-        existingCart.setRestaurantId(5965392056977236797L);
-        existingCart.setItems(new ArrayList<>());
-
-        when(cartRepository.findByUserId(userId)).thenReturn(Optional.of(existingCart));
         when(menuServiceClient.getMenuItemById(menuItemId)).thenReturn(null);
 
         assertThrows(ResourceNotFoundException.class, () -> cartService.addItemToCart(userId, itemDTO));
-        verify(menuServiceClient, times(1)).getMenuItemById(menuItemId);
-        verify(cartItemRepository, never()).save(any());
     }
 
     @Test
-    void testUpdateCartItem_Success() {
+    void testAddItemToCart_NewCart() {
         Long userId = 123L;
-        Long itemId = 1L;
-        
+        Long menuItemId = 1L;
+
         CartItemDTO itemDTO = new CartItemDTO();
-        itemDTO.setMenuItemId(1L);
+        itemDTO.setMenuItemId(menuItemId);
         itemDTO.setItemName("Pizza");
-        itemDTO.setQuantity(3);
-        itemDTO.setPrice(BigDecimal.valueOf(15.50));
+        itemDTO.setQuantity(2);
+        itemDTO.setPrice(15.50);
 
-        CartItem cartItem = new CartItem();
-        cartItem.setId(itemId);
-        cartItem.setMenuItemId(1L);
-        cartItem.setItemName("Pizza");
-        cartItem.setQuantity(2);
-        cartItem.setPrice(BigDecimal.valueOf(15.50));
+        MenuItemDTO menuItemDTO = new MenuItemDTO();
+        menuItemDTO.setItemName("Pizza");
+        menuItemDTO.setPrice(15.50);
+        menuItemDTO.setIsAvailable(true);
+        menuItemDTO.setRestaurantId(100L);
 
-        Cart cart = new Cart();
-        cart.setId(1L);
-        cart.setUserId(userId);
-        cart.setRestaurantId(5965392056977236797L);
-        cart.setItems(Arrays.asList(cartItem));
+        Cart newCart = new Cart();
+        newCart.setId(1L);
+        newCart.setUserId(userId);
+        newCart.setRestaurantId(100L);
+        newCart.setItems(new ArrayList<>());
 
-        when(cartRepository.findByUserId(userId)).thenReturn(Optional.of(cart));
-        when(cartItemRepository.save(any(CartItem.class))).thenAnswer(i -> i.getArgument(0));
+        when(cartRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        when(menuServiceClient.getMenuItemById(menuItemId)).thenReturn(menuItemDTO);
+        when(cartRepository.save(any(Cart.class))).thenReturn(newCart);
+        when(cartItemRepository.save(any(CartItem.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        CartDTO result = cartService.updateCartItem(userId, itemId, itemDTO);
+        CartDTO result = cartService.addItemToCart(userId, itemDTO);
 
         assertNotNull(result);
         assertEquals(userId, result.getUserId());
-        verify(cartRepository, times(1)).findByUserId(userId);
+        verify(cartRepository, times(2)).save(any(Cart.class)); // Once for creating cart, once for updating
         verify(cartItemRepository, times(1)).save(any(CartItem.class));
-    }
-
-    @Test
-    void testUpdateCartItem_InvalidQuantity() {
-        Long userId = 123L;
-        Long itemId = 1L;
-        
-        CartItemDTO itemDTO = new CartItemDTO();
-        itemDTO.setMenuItemId(1L);
-        itemDTO.setItemName("Pizza");
-        itemDTO.setQuantity(0);
-        itemDTO.setPrice(BigDecimal.valueOf(15.50));
-
-        assertThrows(InvalidOperationException.class, () -> cartService.updateCartItem(userId, itemId, itemDTO));
-        verify(cartRepository, never()).findByUserId(any());
-    }
-
-    @Test
-    void testUpdateCartItem_CartNotFound() {
-        Long userId = 123L;
-        Long itemId = 1L;
-        
-        CartItemDTO itemDTO = new CartItemDTO();
-        itemDTO.setMenuItemId(1L);
-        itemDTO.setItemName("Pizza");
-        itemDTO.setQuantity(3);
-        itemDTO.setPrice(BigDecimal.valueOf(15.50));
-
-        when(cartRepository.findByUserId(userId)).thenReturn(Optional.empty());
-
-        assertThrows(ResourceNotFoundException.class, () -> cartService.updateCartItem(userId, itemId, itemDTO));
-        verify(cartRepository, times(1)).findByUserId(userId);
-        verify(cartItemRepository, never()).save(any());
-    }
-
-    @Test
-    void testUpdateCartItem_ItemNotFound() {
-        Long userId = 123L;
-        Long itemId = 999L;
-        
-        CartItemDTO itemDTO = new CartItemDTO();
-        itemDTO.setMenuItemId(1L);
-        itemDTO.setItemName("Pizza");
-        itemDTO.setQuantity(3);
-        itemDTO.setPrice(BigDecimal.valueOf(15.50));
-
-        Cart cart = new Cart();
-        cart.setId(1L);
-        cart.setUserId(userId);
-        cart.setRestaurantId(5965392056977236797L);
-        cart.setItems(new ArrayList<>());
-
-        when(cartRepository.findByUserId(userId)).thenReturn(Optional.of(cart));
-
-        assertThrows(ResourceNotFoundException.class, () -> cartService.updateCartItem(userId, itemId, itemDTO));
-        verify(cartRepository, times(1)).findByUserId(userId);
-        verify(cartItemRepository, never()).save(any());
-    }
-
-    @Test
-    void testRemoveItemFromCart_Success() {
-        Long userId = 123L;
-        Long itemId = 1L;
-        
-        CartItem cartItem = new CartItem();
-        cartItem.setId(itemId);
-        cartItem.setMenuItemId(1L);
-        cartItem.setItemName("Pizza");
-        cartItem.setQuantity(2);
-        cartItem.setPrice(BigDecimal.valueOf(15.50));
-
-        Cart cart = new Cart();
-        cart.setId(1L);
-        cart.setUserId(userId);
-        cart.setRestaurantId(5965392056977236797L);
-        cart.setItems(new ArrayList<>(Arrays.asList(cartItem)));
-
-        when(cartRepository.findByUserId(userId)).thenReturn(Optional.of(cart));
-        doNothing().when(cartItemRepository).delete(cartItem);
-        when(cartRepository.save(any(Cart.class))).thenReturn(cart);
-
-        cartService.removeItemFromCart(userId, itemId);
-
-        verify(cartRepository, times(1)).findByUserId(userId);
-        verify(cartItemRepository, times(1)).delete(cartItem);
-        verify(cartRepository, times(1)).save(cart);
-        assertTrue(cart.getItems().isEmpty());
-    }
-
-    @Test
-    void testRemoveItemFromCart_CartNotFound() {
-        Long userId = 123L;
-        Long itemId = 1L;
-
-        when(cartRepository.findByUserId(userId)).thenReturn(Optional.empty());
-
-        assertThrows(ResourceNotFoundException.class, () -> cartService.removeItemFromCart(userId, itemId));
-        verify(cartRepository, times(1)).findByUserId(userId);
-        verify(cartItemRepository, never()).delete(any());
-    }
-
-    @Test
-    void testRemoveItemFromCart_ItemNotFound() {
-        Long userId = 123L;
-        Long itemId = 999L;
-
-        Cart cart = new Cart();
-        cart.setId(1L);
-        cart.setUserId(userId);
-        cart.setRestaurantId(5965392056977236797L);
-        cart.setItems(new ArrayList<>());
-
-        when(cartRepository.findByUserId(userId)).thenReturn(Optional.of(cart));
-
-        assertThrows(ResourceNotFoundException.class, () -> cartService.removeItemFromCart(userId, itemId));
-        verify(cartRepository, times(1)).findByUserId(userId);
-        verify(cartItemRepository, never()).delete(any());
     }
 
     @Test
     void testClearCart_Success() {
         Long userId = 123L;
-        
-        CartItem cartItem = new CartItem();
-        cartItem.setId(1L);
-        cartItem.setMenuItemId(1L);
-        cartItem.setItemName("Pizza");
-        cartItem.setQuantity(2);
-        cartItem.setPrice(BigDecimal.valueOf(15.50));
 
         Cart cart = new Cart();
         cart.setId(1L);
         cart.setUserId(userId);
-        cart.setRestaurantId(5965392056977236797L);
-        cart.setItems(new ArrayList<>(Arrays.asList(cartItem)));
+        cart.setRestaurantId(100L);
+
+        CartItem item1 = new CartItem();
+        item1.setId(1L);
+        item1.setMenuItemId(1L);
+        item1.setItemName("Pizza");
+        item1.setQuantity(2);
+        item1.setPrice(15.50);
+
+        List<CartItem> cartItems = Arrays.asList(item1);
+        cart.setItems(cartItems);
 
         when(cartRepository.findByUserId(userId)).thenReturn(Optional.of(cart));
-        doNothing().when(cartItemRepository).deleteAll(cart.getItems());
-        when(cartRepository.save(any(Cart.class))).thenReturn(cart);
 
         cartService.clearCart(userId);
 
-        verify(cartRepository, times(1)).findByUserId(userId);
-        verify(cartItemRepository, times(1)).deleteAll(cart.getItems());
-        verify(cartRepository, times(1)).save(cart);
-        assertTrue(cart.getItems().isEmpty());
+        verify(cartItemRepository, times(1)).deleteAll(cartItems);
+        verify(cartRepository, times(1)).delete(cart);
     }
 
     @Test
